@@ -19,6 +19,7 @@ class Item extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'image' => asset($this->image),
+            'images' => $this->images,
             'descr' => $this->descr,
             'total_num' => $this->total_num,
             'winned_num' => $this->winned_num,

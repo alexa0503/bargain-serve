@@ -63,7 +63,7 @@ class BargainController extends Controller
         }
 
         if ($bargain->is_winned == 1) {
-            return response()->json(['ret' => 1001, 'errMsg' => '此砍价已赢取，无法继续']);
+            return response()->json(['ret' => 1001, 'errMsg' => '此商品已经砍到啦，无法继续']);
         }
 
         # 砍价事务处理
@@ -73,7 +73,7 @@ class BargainController extends Controller
             $bargain = Bargain::find($id);
             $item = Item::find($bargain->item_id);
             $bargain_user = BargainUser::where('user_id', $user->id)
-                ->where('item_id', $bargain->item_id)
+                ->where('bargain_id', $bargain->id)
                 ->select('id')
                 ->first();
 
@@ -121,6 +121,26 @@ class BargainController extends Controller
                     } else {
                         $bargain_price = $bargain->current_price - $rules['min_price'];
                         $bargain->is_winned = 1;
+                        // 发送模板消息通知用户
+                        if( $bargain->form_id ){
+                            $end_date = date('y年m月d日', strtotime($shop->end_date));
+                            $mini_program = EasyWeChat::MiniProgram();
+                            $template_id = env('WECHAT_TEMPLATE_ID');
+                            $res = $mini_program->template_message->send([
+                                'touser' => $bargain->user->openid,
+                                'template_id' => $template_id,
+                                'page' => 'pages/bargains/index?scene='.$bargain->id,
+                                'form_id' => $bargain->form_id,
+                                'data' => [
+                                    'keyword1' => $item->name,
+                                    'keyword2' => $item->origin_price,
+                                    'keyword3' => $item->bargain_price,
+                                    'keyword4' => '砍价完成啦',
+                                    'keyword5' => $end_date.'之前去领取哦',
+                                ],
+                            ]);
+                            // dd($res);
+                        }
                     }
                 }
                 $bargain_price = round($bargain_price, 2);
@@ -174,12 +194,13 @@ class BargainController extends Controller
             $bargain->is_winned = 0;
             $bargain->has_bought = 0;
             $bargain->shop_id = $item->shop_id;
+            $bargain->form_id = $request->input('form_id');
             $bargain->save();
         }
         if( !file_exists(base_path('public/codes/').$bargain->id.'.png') ){
             $mini_program = EasyWeChat::MiniProgram();
             $response = $mini_program->app_code->getUnlimit($bargain->id,[
-                'page'=>'pages/bargain/index',
+                'page'=>'pages/exchange/index',
                 'width'=>300,
                 'auto_color'=>false,
                 'is_hyaline'=>true,
@@ -195,5 +216,26 @@ class BargainController extends Controller
         $user = auth('api')->user();
         $bargains = Bargain::where('user_id', $user->id)->get();
         return BargainResource::collection($bargains);
+    }
+
+    // 砍价兑换
+    public function exchange(Request $request, $id)
+    {
+        $bargain = Bargain::find($id);
+        $password = $request->input('password');
+        if( $bargain->is_winned != 1 ){
+            return response()->json(['ret'=> 1002, 'errMsg'=>'没有完成砍价，无法兑换']);
+        }
+        elseif( $bargain->has_bought == 1 ){
+            return response()->json(['ret'=> 1003, 'errMsg'=>'已经兑换过啦']);
+        }
+        elseif( $password == $bargain->password ){
+            $bargain->has_bought = 1;
+            $bargain->exchanged_at = date('Y-m-d H:i:s');
+            $bargain->save();
+            return response()->json(['ret'=> 0, 'errMsg'=>'']);
+        }else{
+            return response()->json(['ret'=> 1001, 'errMsg'=>'密码错误']);
+        }
     }
 }

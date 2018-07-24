@@ -9,7 +9,7 @@ class Item extends Model
     use SoftDeletes;
     protected $dates = ['deleted_at'];
     public $casts = [
-        'bargain_rules' => 'array'
+        'images' => 'array'
     ];
     
     public function shop()

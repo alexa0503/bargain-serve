@@ -35,6 +35,7 @@ Route::namespace('Api')->prefix('v1')->middleware('auth:api')->group(function ()
     Route::post('refresh', 'AuthController@refresh');
     Route::get('me', 'AuthController@me');
     Route::post('update', 'AuthController@update');
+    Route::post('exchange/{id}', 'BargainController@exchange')->name('exchange');
     Route::post('help/{id}', 'BargainController@help')->name('help');
     Route::post('create/{id}', 'BargainController@create');
     Route::post('me/bargains', 'BargainController@index');

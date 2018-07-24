@@ -16,7 +16,7 @@ class ShopController extends Controller
         $shops = Shop::limit(4)->get();
         return ShopResource::collection($shops)->additional([
             'meta' => [
-                'descr' => '此小程序所有数据仅做演示用，无实际价值',
+                'descr' => '此店铺所有数据仅做演示用，无实际价值',
                 'title' => 'Alix',
                 'header_image' => asset('images/header_image.jpg'),
             ],

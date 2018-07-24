@@ -86,66 +86,50 @@ class BargainController extends Controller
             } else {
                 // 差价
                 $spread_price = $item->origin_price - $item->bargain_price;
-                if (empty($item->bargain_rules)) {
-                    $min_price = ($spread_price) / 20;
-                    $max_price = ($spread_price) / 10;
-                    $rules = [
-                        'min_price' => $min_price,
-                        'max_price' => $max_price,
-                        'min_times' => 10,
-                        'max_times' => 20,
-                    ];
-                } else {
-                    $rules = $item->bargain_rules;
-                }
+                $rules = [
+                    'min_price' => $item->bargain_min_price,
+                    'max_price' => $item->bargain_max_price,
+                    'min_times' => $item->bargain_min_times,
+                    'max_times' => $item->bargain_max_times,
+                ];
                 # 如果没有达到最小次数 限定每次价格
-                if ($rules['min_times'] > $bargain->join_times) {
+                if ($rules['min_times'] > $bargain->join_times + 1) {
                     $_price = $spread_price / ($rules['min_times'] - $bargain->join_times);
-                    if ($rules['max_price'] > $_price && $rules['min_price'] < $_price) {
+                    // 防止异常情况
+                    if( $_price < 1 ){
+                        $_price = 0.01;
+                    }
+                    if ( $rules['max_price'] > $_price ) {
                         $rules['max_price'] = $_price;
+                    }
+                    if( $rules['min_price'] >= $rules['max_price'] ){
+                        $rules['min_price'] = $_price;
                     }
                 }
 
                 $rand = rand(ceil($rules['min_price'] * 10000), ceil($rules['max_price'] * 10000));
                 $bargain_price = $rand / 10000;
-                // 根据砍价最大最小次数去调整
-                // 仅剩一次机会
-                if ($rules['max_times'] - $bargain->join_times <= 1) {
+
+                // 砍出价格超出情况
+                if( $bargain->current_price - $bargain_price < $item->bargain_price ){
+                    // 如果未达到最小砍价次数
                     $bargain_price = $bargain->current_price - $item->bargain_price;
+                    $bargain->is_winned = 1;
                 }
-                //$times = $rules['min_times'] - $rules['max_times'];
-                // 砍出最低价
-                elseif ($bargain->current_price - $bargain_price < $rules['min_price']) {
-                    if ($bargain->joined_times < $rules['min_times']) {
-                        $bargain_price = $rules['min_price'];
-                    } else {
-                        $bargain_price = $bargain->current_price - $rules['min_price'];
-                        $bargain->is_winned = 1;
-                        // 发送模板消息通知用户
-                        if( $bargain->form_id ){
-                            $end_date = date('y年m月d日', strtotime($shop->end_date));
-                            $mini_program = EasyWeChat::MiniProgram();
-                            $template_id = env('WECHAT_TEMPLATE_ID');
-                            $res = $mini_program->template_message->send([
-                                'touser' => $bargain->user->openid,
-                                'template_id' => $template_id,
-                                'page' => 'pages/bargains/index?scene='.$bargain->id,
-                                'form_id' => $bargain->form_id,
-                                'data' => [
-                                    'keyword1' => $item->name,
-                                    'keyword2' => $item->origin_price,
-                                    'keyword3' => $item->bargain_price,
-                                    'keyword4' => '砍价完成啦',
-                                    'keyword5' => $end_date.'之前去领取哦',
-                                ],
-                            ]);
-                            // dd($res);
-                        }
-                    }
+                // 仅剩一次机会
+                elseif ($rules['max_times'] - $bargain->join_times <= 1) {
+                    $bargain_price = $bargain->current_price - $item->bargain_price;
+                    $bargain->is_winned = 1;
                 }
+
                 $bargain_price = round($bargain_price, 2);
                 $bargain->current_price -= $bargain_price;
                 $bargain->joined_times += 1;
+                if( $bargain->is_winned == 1 ){
+                    // $item = Item::find($item->id);
+                    $item->winned_num -= 1;
+                    $item->save();
+                }
                 $bargain->save();
                 $new_bargain_user = new BargainUser;
                 $new_bargain_user->user_id = $user->id;
@@ -153,6 +137,27 @@ class BargainController extends Controller
                 $new_bargain_user->item_id = $item->id;
                 $new_bargain_user->bargain_price = $bargain_price;
                 $new_bargain_user->save();
+                // 发送模板消息通知用户
+                if( $bargain->form_id && $bargain->is_winned == 1 ){
+                    $end_date = date('y年m月d日', strtotime($shop->end_date));
+                    $mini_program = EasyWeChat::MiniProgram();
+                    $template_id = env('WECHAT_TEMPLATE_ID');
+                    $template_id = config('wechat.mini_program.default.template_id');
+                    $res = $mini_program->template_message->send([
+                        'touser' => $bargain->user->openid,
+                        'template_id' => $template_id,
+                        'page' => 'pages/bargains/index?scene='.$bargain->id,
+                        'form_id' => $bargain->form_id,
+                        'data' => [
+                            'keyword1' => $item->name,
+                            'keyword2' => $item->origin_price,
+                            'keyword3' => $item->bargain_price,
+                            'keyword4' => '砍价完成啦',
+                            'keyword5' => $end_date.'之前去领取哦',
+                        ],
+                    ]);
+                    // dd($res);
+                }
                 $return = [
                     'ret' => 0,
                     'bargain' => new BargainResource($bargain),
@@ -213,8 +218,12 @@ class BargainController extends Controller
     // 用户所有得砍价信息
     public function index(Request $request)
     {
+        $shop_id = $request->input('shop_id');
+        if( !$shop_id ){
+            $shop_id = 1;
+        }
         $user = auth('api')->user();
-        $bargains = Bargain::where('user_id', $user->id)->get();
+        $bargains = Bargain::where('user_id', $user->id)->where('shop_id', $shop_id)->get();
         return BargainResource::collection($bargains);
     }
 

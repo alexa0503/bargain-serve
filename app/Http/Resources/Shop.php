@@ -26,6 +26,12 @@ class Shop extends JsonResource
             $state = 2;
         }
         //dd(\Route::currentRouteName());
+        if( $request->preview == 'y' ){
+            $items = ItemResource::collection($this->preview_items);
+        }
+        else{
+            $items = ItemResource::collection($this->posted_items);
+        }
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -42,7 +48,7 @@ class Shop extends JsonResource
             'descr' => $this->descr,
             'visit_times' => $this->visit_times,
             $this->mergeWhen(Route::currentRouteName() != 'bargain',[
-                'items' => ItemResource::collection($this->posted_items),
+                'items' => $items,
             ]),
             'state' => $state, // 店铺当前状态
             //'created_at' => $this->created_at,

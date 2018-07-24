@@ -100,6 +100,7 @@ return [
              'secret'  => env('WECHAT_MINI_PROGRAM_SECRET', ''),
              'token'   => env('WECHAT_MINI_PROGRAM_TOKEN', ''),
              'aes_key' => env('WECHAT_MINI_PROGRAM_AES_KEY', ''),
+             'template_id' => env('WECHAT_TEMPLATE_ID', ''),
          ],
      ],
 

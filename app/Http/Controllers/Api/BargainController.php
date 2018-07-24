@@ -222,6 +222,7 @@ class BargainController extends Controller
     public function exchange(Request $request, $id)
     {
         $bargain = Bargain::find($id);
+        $shop = $bargain->shop;
         $password = $request->input('password');
         if( $bargain->is_winned != 1 ){
             return response()->json(['ret'=> 1002, 'errMsg'=>'没有完成砍价，无法兑换']);
@@ -229,7 +230,7 @@ class BargainController extends Controller
         elseif( $bargain->has_bought == 1 ){
             return response()->json(['ret'=> 1003, 'errMsg'=>'已经兑换过啦']);
         }
-        elseif( $password == $bargain->password ){
+        elseif( $shop && $password == $shop->password ){
             $bargain->has_bought = 1;
             $bargain->exchanged_at = date('Y-m-d H:i:s');
             $bargain->save();

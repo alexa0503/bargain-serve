@@ -32,6 +32,8 @@ class Shop extends JsonResource
         else{
             $items = ItemResource::collection($this->posted_items);
         }
+        $descr = str_replace(["\n\r","\n"],"<br/>",$this->descr);
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -45,7 +47,7 @@ class Shop extends JsonResource
             'start_date' => $this->start_date,
             'end_date' => $this->end_date,
             'address' => $this->address,
-            'descr' => $this->descr,
+            'descr' => $descr,
             'visit_times' => $this->visit_times,
             'items' => $items,
             // $this->mergeWhen(Route::currentRouteName() != 'bargain',[

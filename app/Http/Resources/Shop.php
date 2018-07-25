@@ -47,9 +47,10 @@ class Shop extends JsonResource
             'address' => $this->address,
             'descr' => $this->descr,
             'visit_times' => $this->visit_times,
-            $this->mergeWhen(Route::currentRouteName() != 'bargain',[
-                'items' => $items,
-            ]),
+            'items' => $items,
+            // $this->mergeWhen(Route::currentRouteName() != 'bargain',[
+            //     'items' => $items,
+            // ]),
             'state' => $state, // 店铺当前状态
             //'created_at' => $this->created_at,
             //'updated_at' => $this->updated_at,

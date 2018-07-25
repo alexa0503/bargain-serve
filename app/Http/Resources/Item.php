@@ -15,12 +15,14 @@ class Item extends JsonResource
     public function toArray($request)
     {
         $disabled = $this->winned_num >= $this->total_num;
+        $descr = str_replace(["\n\r","\n"],"<br/>",$this->descr);
+
         return [
             'id' => $this->id,
             'name' => $this->name,
             'image' => asset($this->image),
             'images' => $this->images,
-            'descr' => $this->descr,
+            'descr' => $descr,
             'total_num' => $this->total_num,
             'winned_num' => $this->winned_num,
             'bargained_num' => $this->bargained_num,

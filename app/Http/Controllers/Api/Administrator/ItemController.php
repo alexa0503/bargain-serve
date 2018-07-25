@@ -66,8 +66,8 @@ class ItemController extends Controller
         $validator = Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
-            $errors = $validator->errors();
-            return response()->json(['ret' => 1001, 'errMsg' => $errors]);
+            return response()->json($validator->errors(),422);
+
         }
         $item = new Item;
 
@@ -88,8 +88,21 @@ class ItemController extends Controller
         else{
             $shop_id = $request->input('shop_id');
         }
+        
+        $images = [];
+        foreach($request->input('images') as $img ){
+            if (preg_match($pattern, $img, $matches)) {
+                $filename = 'items/' . date('YmdHis') . str_random(6) . '.' . $matches[1];
+                Storage::disk('public')->put($filename, \base64_decode($matches[2]));
+                $images[] = Storage::disk('public')->url($filename);
+            }
+            else{
+                $images[] = asset($img);
+            }
+        }
         $item->name = $request->input('name');
         $item->image = $image;
+        $item->images = $images;
         $item->shop_id = $shop_id;
         $item->descr = $request->input('descr');
         $item->total_num = $request->input('total_num');
@@ -151,8 +164,7 @@ class ItemController extends Controller
             $validator = Validator::make($request->all(), $rules, $messages);
 
             if ($validator->fails()) {
-                $errors = $validator->errors();
-                return response()->json(['ret' => 1001, 'errMsg' => $errors]);
+                return response()->json($validator->errors(),422);
             }
             $item = Item::find($id);
 

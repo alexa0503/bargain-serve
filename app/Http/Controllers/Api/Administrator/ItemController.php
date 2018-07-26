@@ -113,7 +113,7 @@ class ItemController extends Controller
         $item->bargain_min_times = $request->input('bargain_min_times');
         $item->bargain_max_times = $request->input('bargain_max_times');
         $item->is_posted = 0;
-        $item->exchange_password = str_random(6);
+        // $item->exchange_password = str_random(6);
         $count = Item::where('shop_id', $shop_id)->count();
         $item->order_id = $count + 1;
         $item->save();
@@ -235,8 +235,13 @@ class ItemController extends Controller
     public function publish(Request $request, $id)
     {
         $item = Item::find($id);
+        $published_num = Item::where('is_posted',1)
+            ->where('shop_id', $item->shop_id)
+            ->count();
         if (!$item) {
             return response()->json(['ret' => 1001, 'errMsg' => '不存在该商品'], 404);
+        }elseif($published_num >= $item->shop->max_items_num){
+            return response()->json(['ret' => 1002, 'errMsg' => '您已经无法发布更多商品了，请联系客服人员。']);
         } else {
             $item->is_posted = $request->input('type') == 'on' ? 1 : 0;
             $item->save();

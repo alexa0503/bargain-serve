@@ -19,14 +19,10 @@ class CreateItemsTable extends Migration
             $table->foreign('shop_id')->references('id')->on('shops');
             $table->string('name');
             $table->string('image');
-            $table->string('descr');
-            $table->integer('total_num')->index();
+            $table->string('images',2000)->default('[]');
+            $table->text('descr');
             $table->integer('winned_num')->default(0)->index();
             $table->integer('bargained_num')->default(0)->index();
-            $table->decimal('origin_price',10,2);
-            $table->decimal('bargain_price',10,2);
-            $table->boolean('is_posted'); //是否发布
-            $table->string('exchange_password');
             $table->timestamps();
             $table->softDeletes();
         });

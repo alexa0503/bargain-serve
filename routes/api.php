@@ -22,6 +22,8 @@ Route::namespace('Api\Administrator')->name('admin.')->prefix('admin')->middlewa
     Route::resource('bargain', 'BargainController');
     Route::post('items/{id}/publish', 'ItemController@publish')->name('item.publish');
     Route::resource('items', 'ItemController');
+    Route::resource('event/{id}/items', 'EventItemController');
+    Route::resource('events', 'EventController');
 });
 # 后台登陆
 Route::namespace('Api')->name('admin.')->prefix('admin')->group(function () {

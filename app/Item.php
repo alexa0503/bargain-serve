@@ -16,4 +16,9 @@ class Item extends Model
     {
         return $this->belongsTo('App\Shop');
     }
+
+    public function events()
+    {
+        return $this->belongsToMany('App\Events','event_items');
+    }
 }

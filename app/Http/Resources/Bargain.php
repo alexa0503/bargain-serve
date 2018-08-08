@@ -29,13 +29,34 @@ class Bargain extends JsonResource
                 $has_helped = true;
             }
         }
+        $descr = str_replace(["\n\r","\n"],"<br/>",$this->item->descr);
+
+        $item = [
+            'id' => $this->event_item->id,
+            'name' => $this->item->name,
+            'image' => asset($this->item->image),
+            'images' => $this->item->images,
+            'descr' => $descr,
+            'winned_num' => $this->event_item->winned_num,
+            'exchanged_num' => $this->event_item->exchanged_num,
+            'total_num' => $this->event_item->total_num,
+            'bargained_num' => $this->event_item->bargained_num,
+            'origin_price' => $this->event_item->origin_price,
+            'bargain_price' => $this->event_item->bargain_price,
+            'bargain_min_times' => $this->event_item->bargain_min_times,
+            'bargain_max_times' => $this->event_item->bargain_max_times,
+            'bargain_min_price' => $this->event_item->bargain_min_price,
+            'bargain_max_price' => $this->event_item->bargain_max_price,
+        ];
         return [
             'id' => $this->id,
+            'shop_id' => $this->shop_id,
             $this->mergeWhen(Route::currentRouteName() != 'help', [
                 'user' => new UserResource($this->user),
-                'item' => new ItemResource($this->item),
-                'shop' => new ShopResource($this->shop),
+                // 'item' => new ItemResource($this->item),
+                // 'shop' => new ShopResource($this->shop),
             ]),
+            'item' => $item,
             'has_helped' => $has_helped,
             //'bargain_users' => UserResource::collection($this->bargain_users),
             'joined_times' => $this->joined_times,

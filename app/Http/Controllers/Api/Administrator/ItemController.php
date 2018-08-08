@@ -5,27 +5,29 @@ namespace App\Http\Controllers\Api\Administrator;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Administrator\Item as ItemResource;
 use App\Item;
+use App\EventItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Validator;
 
 class ItemController extends Controller
 {
+    protected $can_add_qty = 20;
     protected $messages = [
         'name.*' => '店铺名必须填写且不能超过100个字符~',
         'image.*' => '请上传图片~',
         'descr.*' => '请填写描述~',
-        'total_num.*' => '请填写商品总数~',
-        'origin_price.*' => '请填写商品原价~',
-        'bargain_price.*' => '请填写商品可砍最低价~',
+        // 'total_num.*' => '请填写商品总数~',
+        // 'origin_price.*' => '请填写商品原价~',
+        // 'bargain_price.*' => '请填写商品可砍最低价~',
     ];
     protected $rules = [
         'name' => 'required|max:100',
         'image' => 'required',
         'descr' => 'required',
-        'total_num' => 'required',
-        'origin_price' => 'required',
-        'bargain_price' => 'required',
+        // 'total_num' => 'required',
+        // 'origin_price' => 'required',
+        // 'bargain_price' => 'required',
     ];
     /**
      * Display a listing of the resource.
@@ -39,7 +41,16 @@ class ItemController extends Controller
         if ($admin->shop_id) {
             $model->where('shop_id', $admin->shop_id);
         }
-        $items = $model->paginate(20);
+        if( $request->input('event_id') ){
+            $item_ids = EventItem::where('event_id', $request->input('event_id'))->where('shop_id', $admin->shop_id)->get()->map(function($item){
+                return $item->item_id;
+            });
+            $model->whereNotIn('id', $item_ids);
+            $items = $model->get();
+        }
+        else{
+            $items = $model->paginate(20);
+        }
         return ItemResource::collection($items);
     }
 
@@ -65,9 +76,15 @@ class ItemController extends Controller
         $rules = $this->rules;
         $validator = Validator::make($request->all(), $rules, $messages);
 
+        $count = Item::where('shop_id', $shop_id)->count();
+        $can_add_qty = $this->can_add_qty;
+        $validator->after(function ($validator) use($count,$can_add_qty) {
+            if($count >= $can_add_qty){
+                $validator->errors()->add('name', '抱歉，最多只能添加'.$can_add_qty.'个商品。');
+            }
+        });
         if ($validator->fails()) {
             return response()->json($validator->errors(),422);
-
         }
         $item = new Item;
 
@@ -88,7 +105,6 @@ class ItemController extends Controller
         else{
             $shop_id = $request->input('shop_id');
         }
-        
         $images = [];
         foreach($request->input('images') as $img ){
             if (preg_match($pattern, $img, $matches)) {
@@ -105,14 +121,15 @@ class ItemController extends Controller
         $item->images = $images;
         $item->shop_id = $shop_id;
         $item->descr = $request->input('descr');
-        $item->total_num = $request->input('total_num');
-        $item->origin_price = $request->input('origin_price');
-        $item->bargain_price = $request->input('bargain_price');
-        $item->bargain_min_price = $request->input('bargain_min_price');
-        $item->bargain_max_price = $request->input('bargain_max_price');
-        $item->bargain_min_times = $request->input('bargain_min_times');
-        $item->bargain_max_times = $request->input('bargain_max_times');
-        $item->is_posted = 0;
+        $item->is_released = 0;
+        // $item->total_num = $request->input('total_num');
+        // $item->origin_price = $request->input('origin_price');
+        // $item->bargain_price = $request->input('bargain_price');
+        // $item->bargain_min_price = $request->input('bargain_min_price');
+        // $item->bargain_max_price = $request->input('bargain_max_price');
+        // $item->bargain_min_times = $request->input('bargain_min_times');
+        // $item->bargain_max_times = $request->input('bargain_max_times');
+        // $item->is_posted = 0;
         // $item->exchange_password = str_random(6);
         $count = Item::where('shop_id', $shop_id)->count();
         $item->order_id = $count + 1;
@@ -193,13 +210,13 @@ class ItemController extends Controller
             $item->images = $images;
             $item->name = $request->input('name');
             $item->descr = $request->input('descr');
-            $item->total_num = $request->input('total_num');
-            $item->bargain_price = $request->input('bargain_price');
-            $item->origin_price = $request->input('origin_price');
-            $item->bargain_min_price = $request->input('bargain_min_price');
-            $item->bargain_max_price = $request->input('bargain_max_price');
-            $item->bargain_min_times = $request->input('bargain_min_times');
-            $item->bargain_max_times = $request->input('bargain_max_times');
+            // $item->total_num = $request->input('total_num');
+            // $item->bargain_price = $request->input('bargain_price');
+            // $item->origin_price = $request->input('origin_price');
+            // $item->bargain_min_price = $request->input('bargain_min_price');
+            // $item->bargain_max_price = $request->input('bargain_max_price');
+            // $item->bargain_min_times = $request->input('bargain_min_times');
+            // $item->bargain_max_times = $request->input('bargain_max_times');
             $item->save();
             return response()->json(['ret' => 0]);
         }
@@ -215,9 +232,10 @@ class ItemController extends Controller
     public function destroy($id)
     {
         $item = Item::find($id);
+        $count = EventItem::where('item_id', $id)->count();
         if (!$item) {
             return response()->json(['ret' => 1001, 'errMsg' => '不存在该商品'], 404);
-        } elseif( $item->is_posted == 1) {
+        } elseif( $count > 1) {
             return response()->json(['ret' => 1002, 'errMsg' => '发布中的商品无法删除'], 422);
         }
         else {

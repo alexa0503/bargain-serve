@@ -6,9 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Bargain extends Model
 {
+    public function event_item()
+    {
+        return $this->belongsTo('App\EventItem','event_item_id');
+    }
     public function item()
     {
-        return $this->belongsTo('App\Item');
+        return $this->belongsTo('App\Item','item_id');
     }
     public function user()
     {

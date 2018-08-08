@@ -45,17 +45,7 @@ class ShopController extends Controller
     public function store(Request $request)
     {
         
-        if( !file_exists(base_path('public/codes/shops/').$bargain->id.'.png') ){
-            $mini_program = EasyWeChat::MiniProgram();
-            $response = $mini_program->app_code->getUnlimit($bargain->id,[
-                'page'=>'pages/bargain/index',
-                'width'=>300,
-                'auto_color'=>false,
-                'is_hyaline'=>true,
-                'line_color'=>(object)['r'=>0,'g'=>0,'b'=>0],
-            ]);
-            $response->saveAs(base_path('public/codes/shops/'), $bargain->id.'.png');
-        }
+        
     }
 
     /**
@@ -143,19 +133,19 @@ class ShopController extends Controller
         else{
             $header_image = $request->input('header_image');
         }
-        $item = Shop::find($id);
-        $item->name = $request->input('name');
-        $item->title = $request->input('title');
-        $item->tel = $request->input('tel');
-        $item->header_image = $header_image;
-        $item->start_date = $request->input('start_date');
-        $item->end_date = $request->input('end_date');
-        $item->address = $request->input('address');
-        $item->thumb = $thumb;
-        // $item->share_image = $share_image;
-        // $item->share_descr = $request->input('share_descr');
-        // $item->share_title = $request->input('share_title');
-        $item->save();
+        $shop = Shop::find($id);
+        $shop->name = $request->input('name');
+        $shop->title = $request->input('title');
+        $shop->tel = $request->input('tel');
+        $shop->header_image = $header_image;
+        $shop->start_date = $request->input('start_date');
+        $shop->end_date = $request->input('end_date');
+        $shop->address = $request->input('address');
+        $shop->thumb = $thumb;
+        // $shop->share_image = $share_image;
+        // $shop->share_descr = $request->input('share_descr');
+        // $shop->share_title = $request->input('share_title');
+        $shop->save();
         return response()->json(['ret'=>0]);
     }
 

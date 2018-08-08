@@ -19,6 +19,7 @@ class EventItem extends JsonResource
             'id' => $this->id,
             'name' => $this->item->name,
             'event_name' => $this->event->name,
+            'event_id' => $this->event->id,
             'total_num' => $this->total_num,
             'winned_num' => $this->winned_num,
             'bargained_num' => $this->bargained_num,

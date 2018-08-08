@@ -14,7 +14,8 @@ class Item extends JsonResource
      */
     public function toArray($request)
     {
-        $disabled = $this->winned_num >= $this->total_num;
+        // 判断商品是否可砍价
+        $disabled = false;
         $descr = str_replace(["\n\r","\n"],"<br/>",$this->descr);
 
         return [
@@ -23,12 +24,10 @@ class Item extends JsonResource
             'image' => asset($this->image),
             'images' => $this->images,
             'descr' => $descr,
-            'total_num' => $this->total_num,
             'winned_num' => $this->winned_num,
-            'bargained_num' => $this->bargained_num,
-            'origin_price' => $this->origin_price,
-            'bargain_price' => $this->bargain_price,
-            'disabled' => $disabled
+            // 'bargained_num' => $this->bargained_num,
+            // 'exchanged_num' => $this->exchanged_num,
+            // 'disabled' => $disabled
         ];
     }
 }

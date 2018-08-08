@@ -24,8 +24,6 @@ class CreateShopsTable extends Migration
             $table->text('share_title');
             $table->text('share_desc');
             $table->text('share_image');
-            $table->date('start_date');
-            $table->date('end_date');
             $table->integer('visit_times');
             $table->integer('max_item_num');
             $table->boolean('is_activated');

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Bargain as BargainResource;
 use App\Http\Resources\BargainUser as BargainUserResource;
 use App\Item;
+use App\EventItem;
 use App\Shop;
 use DB;
 use Illuminate\Http\Request;
@@ -24,16 +25,6 @@ class BargainController extends Controller
             return response()->json(['ret' => 1100, 'errMsg' => '无此记录'], 404);
         }
 
-        # 核实店铺状态
-        $shop = $bargain->shop;
-        $start_time = strtotime($shop->start_date);
-        $end_time = strtotime($shop->end_date . ' 23:59:59');
-        $now = time();
-        if ($now < $start_time) {
-            return response()->json(['ret' => 1002, 'errMsg' => '活动未开始'], 422);
-        } elseif ($now > $end_time) {
-            return response()->json(['ret' => 1003, 'errMsg' => '活动已结束'], 422);
-        }
         return new BargainResource($bargain);
     }
     // 帮忙砍价用户信息
@@ -53,17 +44,15 @@ class BargainController extends Controller
 
         # 核实店铺状态
         $shop = $bargain->shop;
-        $start_time = strtotime($shop->start_date);
-        $end_time = strtotime($shop->end_date . ' 23:59:59');
-        $now = time();
-        if ($now < $start_time) {
-            return response()->json(['ret' => 1002, 'errMsg' => '活动未开始'], 422);
-        } elseif ($now > $end_time) {
-            return response()->json(['ret' => 1003, 'errMsg' => '活动已结束'], 422);
+        $current_event = Shop::currentEvent();
+        if($event_item->is_released == 0){
+            return response()->json(['ret' => 1001, 'errMsg' => '非活动商品，无法砍价']);
         }
-
-        if ($bargain->is_winned == 1) {
-            return response()->json(['ret' => 1001, 'errMsg' => '此商品已经砍到啦，无法继续']);
+        elseif( $bargain->event_item->event_id != $current_event->id ){
+            return response()->json(['ret' => 1001, 'errMsg' => '非活动商品，无法砍价']);
+        }
+        elseif ( $bargain->is_winned == 1 ) {
+            return response()->json(['ret' => 1001, 'errMsg' => '此商品已经砍到啦']);
         }
 
         # 砍价事务处理
@@ -71,7 +60,7 @@ class BargainController extends Controller
         DB::beginTransaction();
         try {
             $bargain = Bargain::find($id);
-            $item = Item::find($bargain->item_id);
+            $item = EventItem::find($bargain->event_item_id);
             $bargain_user = BargainUser::where('user_id', $user->id)
                 ->where('bargain_id', $bargain->id)
                 ->select('id')
@@ -173,32 +162,28 @@ class BargainController extends Controller
     // 生成砍价信息
     public function create(Request $request, $id)
     {
-        $item = Item::find($id);
-        if (null == $item || $item->is_posted == 0) {
+        $event_item = EventItem::find($id);
+        // $item = Item::find($id);
+        if (null == $event_item || $event_item->is_released == 0) {
             return response()->json(['ret' => 1100, 'errMsg' => '无此商品'], 404);
         }
-        # 核实店铺状态
-        $shop = $item->shop;
-        $start_time = strtotime($shop->start_date);
-        $end_time = strtotime($shop->end_date . ' 23:59:59');
-        $now = time();
-        if ($now < $start_time) {
-            return response()->json(['ret' => 1002, 'errMsg' => '活动未开始'], 422);
-        } elseif ($now > $end_time) {
-            return response()->json(['ret' => 1003, 'errMsg' => '活动已结束'], 422);
+        $event = Shop::currentEvent();
+        if( $event->id != $event_item->event_id ){
+            return response()->json(['ret' => 1002, 'errMsg' => '该商品未上架'], 422);
         }
 
         $user = auth('api')->user();
-        $bargain = Bargain::where('user_id', $user->id)->where('item_id', $item->id)->first();
+        $bargain = Bargain::where('user_id', $user->id)->where('event_item_id', $event_item->id)->first();
         if (null == $bargain) {
             $bargain = new Bargain;
             $bargain->user_id = $user->id;
-            $bargain->item_id = $item->id;
+            $bargain->item_id = $event_item->item_id;
+            $bargain->event_item_id = $event_item->id;
             $bargain->joined_times = 0;
-            $bargain->current_price = $item->origin_price;
+            $bargain->current_price = $event_item->origin_price;
             $bargain->is_winned = 0;
             $bargain->has_bought = 0;
-            $bargain->shop_id = $item->shop_id;
+            $bargain->shop_id = $event_item->shop_id;
             $bargain->form_id = $request->input('form_id');
             $bargain->save();
         }

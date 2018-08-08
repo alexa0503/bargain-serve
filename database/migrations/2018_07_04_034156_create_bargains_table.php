@@ -16,6 +16,8 @@ class CreateBargainsTable extends Migration
         # 发起的砍价信息
         Schema::create('bargains', function (Blueprint $table) {
             $table->increments('id');
+            $table->integer('event_id')->unsigned();
+            $table->foreign('event_id')->references('id')->on('events');
             $table->integer('item_id')->unsigned();
             $table->foreign('item_id')->references('id')->on('items');
             $table->integer('user_id')->unsigned();
@@ -24,7 +26,6 @@ class CreateBargainsTable extends Migration
             $table->decimal('current_price',10,2);
             $table->boolean('is_winned');
             $table->boolean('has_bought');
-            //$table->boolean('exchange_code');
             $table->timestamps();
         });
         # 砍价用户信息

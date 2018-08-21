@@ -15,15 +15,18 @@ use Illuminate\Http\Request;
 # 后台接口
 Route::namespace('Api\Administrator')->name('admin.')->prefix('admin')->middleware('auth:admin')->group(function () {
     Route::post('logout', 'AuthController@logout');
+    Route::put('account', 'AuthController@update');
     Route::post('refresh', 'AuthController@refresh');
     Route::get('me', 'AuthController@me');
     Route::resource('user', 'UserController');
     Route::resource('shop', 'ShopController');
-    Route::resource('bargain', 'BargainController');
-    Route::post('items/{id}/publish', 'ItemController@publish')->name('item.publish');
-    Route::resource('items', 'ItemController');
-    Route::resource('event/{id}/items', 'EventItemController');
-    Route::resource('events', 'EventController');
+    Route::middleware('admin')->group(function(){
+        Route::resource('bargain', 'BargainController');
+        Route::post('items/{id}/publish', 'ItemController@publish')->name('item.publish');
+        Route::resource('items', 'ItemController');
+        Route::resource('event/{id}/items', 'EventItemController');
+        Route::resource('events', 'EventController');
+    });
 });
 # 后台登陆
 Route::namespace('Api')->name('admin.')->prefix('admin')->group(function () {

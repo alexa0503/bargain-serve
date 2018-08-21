@@ -31,6 +31,7 @@ class Administrator extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'is_super' => $this->shop_id ? false : true,
+            'is_activated' => $this->is_activated,
             'email' => $this->email,
             'shop' => new ShopResource($this->shop),
             'created_at' => $this->created_at->toDateTimeString(),

@@ -69,6 +69,48 @@ class AuthController extends Controller
         auth('admin')->logout();
         return response()->json(['message' => 'Successfully logged out']);
     }
+    
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function register(Request $request)
+    {
+        return response()->json([]);
+    }
+    
+    /**
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(Request $request)
+    {
+        $rules = [
+            'password' => [
+                'required',
+                'regex:/.{6,}/'
+            ],
+            'repeatPassword' => 'required',
+        ];
+        $messages = [
+            'password.required' => '请输入密码',
+            'password.regex' => '密码不能少于六位数',
+            'repeatPassword.*' => '请输入密码重复密码',
+        ];
+        $validator = Validator::make($request->all(), $rules, $messages);
+        $validator->after(function ($validator) use($request){
+            if( $request->input('password') != $request->input('repeatPassword') ){
+                $validator->errors()->add('repeatPassword', '两次输入的密码不一致');
+            }
+        });
+        if ($validator->fails()) {
+            return response()->json($validator->errors(),422);
+        }
+        $admin = auth('admin')->user();
+        \DB::table('administrators')->where('id', $admin->id)->update([
+            'password' => bcrypt($request->input('password'))
+        ]);
+        return response()->json([]);
+    }
 
     /**
      * Refresh a token.
